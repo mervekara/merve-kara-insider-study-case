@@ -52,10 +52,7 @@ export default defineComponent({
   },
   setup() {
     const store = useStore();
-    const raceSchedule = ref<any[]>([]);
-    const raceResults = ref<any[][]>([]);
     const errorMsg = ref<string>("");
-    const currentRaceHorses = ref<any[]>([]);
 
     const generateRaceSchedule = async () => {
       try {
@@ -90,11 +87,8 @@ export default defineComponent({
 
     return {
       generateRaceSchedule,
-      raceSchedule,
       startRace,
-      raceResults,
       errorMsg,
-      currentRaceHorses,
       currentRaceName,
     };
   },
