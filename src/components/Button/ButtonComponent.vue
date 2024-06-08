@@ -1,5 +1,5 @@
 <template>
-  <button @click="onClick" class="button">
+  <button @click="onClick" :class="disabled ? 'disabled' : ''" class="button">
     <slot></slot>
   </button>
 </template>
@@ -13,6 +13,10 @@ export default defineComponent({
     onClick: {
       type: Function,
       required: true,
+    },
+    disabled: {
+      type: Boolean,
+      required: false,
     },
   },
 });
@@ -28,7 +32,12 @@ export default defineComponent({
   color: white;
 }
 
-.button:hover {
+.button:not(.disabled):hover {
   background-color: #45a049;
+}
+
+.disabled {
+  background-color: #ff6347;
+  pointer-events: none;
 }
 </style>

@@ -1,10 +1,13 @@
 <template>
-  <ButtonComponent @click="onClick">START</ButtonComponent>
+  <ButtonComponent :disabled="!canStartRace" @click="onClick"
+    >START</ButtonComponent
+  >
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, computed } from "vue";
 import ButtonComponent from "./Button/ButtonComponent.vue";
+import { useStore } from "vuex";
 
 export default defineComponent({
   name: "StartRaceButton",
@@ -14,6 +17,16 @@ export default defineComponent({
       type: Function,
       required: true,
     },
+  },
+  setup() {
+    const store = useStore();
+
+    // eslint-disable-next-line no-undef
+    const canStartRace = computed(() => store.state.raceResults.length === 0);
+
+    return {
+      canStartRace,
+    };
   },
 });
 </script>

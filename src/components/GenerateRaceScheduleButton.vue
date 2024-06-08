@@ -1,10 +1,13 @@
 <template>
-  <ButtonComponent @click="onClick">GENERATE PROGRAM</ButtonComponent>
+  <ButtonComponent :disabled="!canStartRace" @click="onClick"
+    >GENERATE PROGRAM</ButtonComponent
+  >
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, computed } from "vue";
 import ButtonComponent from "./Button/ButtonComponent.vue";
+import { useStore } from "vuex";
 
 export default defineComponent({
   name: "GenerateRaceScheduleButton",
@@ -15,5 +18,17 @@ export default defineComponent({
       required: true,
     },
   },
+  setup() {
+    const store = useStore();
+
+    // eslint-disable-next-line no-undef
+    const canStartRace = computed(() => store.state.raceResults.length === 0);
+
+    return {
+      canStartRace,
+    };
+  },
 });
 </script>
+
+function useStore() { throw new Error("Function not implemented."); }
