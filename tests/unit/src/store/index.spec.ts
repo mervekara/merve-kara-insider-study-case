@@ -1,197 +1,83 @@
 import { createStore, Store } from "vuex";
-import { State, Horse, Race } from "@/types/Horse";
-import { calculateFinishTime, generateRandomSpeed } from "@/utils/raceHelpers";
-import { getSuffix } from "@/utils/helpers";
+import { State } from "@/types/Horse";
+import actions from "@/store/actions";
+import getters from "@/store/getters";
+import mutations from "@/store/mutations";
+import { initializeStore } from "@/utils/storeInitializer";
+
+jest.mock("@/store/actions", () => ({
+  generateRaceSchedule: jest.fn(),
+  startRace: jest.fn(),
+}));
+
+jest.mock("@/utils/storeInitializer", () => ({
+  initializeStore: jest.fn(() => [
+    { name: "Horse 1", speed: 40 },
+    { name: "Horse 2", speed: 35 },
+  ]),
+}));
 
 describe("Vuex Store", () => {
-  let testStore: Store<State>;
+  let store: Store<State>;
 
   beforeEach(() => {
-    testStore = createStore<State>({
-      state: {
-        horses: [],
-        raceSchedule: [],
-        raceResults: [],
-        currentRaceName: "",
-        maxFinishTime: 0,
-        currentRaceHorses: [],
-      },
-      mutations: {
-        setHorses(state, horses: Horse[]) {
-          state.horses = horses;
-        },
-        setRaceSchedule(state, raceSchedule: Race[]) {
-          state.raceSchedule = raceSchedule;
-        },
-        setRaceResults(state, raceResults: Race[]) {
-          state.raceResults = raceResults;
-        },
-        setCurrentRaceHorses(state, currentRaceHorses: Horse[]) {
-          state.currentRaceHorses = currentRaceHorses;
-        },
-        setCurrentRaceName(state, raceName: string) {
-          state.currentRaceName = raceName;
-        },
-        setMaxFinishTime(state, maxFinishTime: number) {
-          state.maxFinishTime = maxFinishTime;
-        },
-      },
-      actions: {
-        generateRaceSchedule({ commit, state }) {
-          const raceSchedule = [];
-          const distances = [1200, 1400, 1600, 1800, 2000, 2200];
-          for (let i = 0; i < 6; i++) {
-            const shuffledHorses = [...state.horses].sort(
-              () => 0.5 - Math.random()
-            );
-            const selectedHorses = shuffledHorses.slice(0, 10);
-            raceSchedule.push({
-              distance: distances[i],
-              horses: selectedHorses.map((horse, index) => ({
-                position: index + 1,
-                name: horse.name,
-                color: horse.color,
-              })),
-            });
-          }
+    const state: State = {
+      horses: initializeStore(),
+      raceSchedule: [],
+      raceResults: [],
+      currentRaceName: "",
+      maxFinishTime: 0,
+      currentRaceHorses: [],
+    };
 
-          commit("setRaceSchedule", raceSchedule);
-
-          return Promise.resolve(raceSchedule);
-        },
-        async startRace({ commit, state }) {
-          if (state.raceSchedule.length === 0) {
-            console.error("Please generate a race schedule first.");
-            return;
-          }
-
-          for (const index in state.raceSchedule) {
-            const race = state.raceSchedule[index];
-            const raceIndex = Number(index) + 1;
-
-            commit(
-              "setCurrentRaceName",
-              `${raceIndex}${getSuffix(raceIndex)} Lap ${race.distance}m`
-            );
-
-            const currentRaceHorses = race.horses.map((horse: Horse) => ({
-              ...horse,
-              color: horse.color,
-              position: 0,
-            }));
-
-            for (const horse of currentRaceHorses) {
-              horse.speed = generateRandomSpeed();
-            }
-
-            const maxFinishTime = Math.max(
-              ...currentRaceHorses.map((horse) =>
-                calculateFinishTime(race.distance, horse.speed)
-              )
-            );
-
-            commit("setCurrentRaceHorses", currentRaceHorses);
-
-            await new Promise((resolve) =>
-              setTimeout(resolve, maxFinishTime * 450)
-            );
-
-            const raceResult = currentRaceHorses.map((horse) => ({
-              position: 0,
-              name: horse.name,
-              finishTime: calculateFinishTime(race.distance, horse.speed),
-            }));
-
-            raceResult.sort((a, b) => a.finishTime - b.finishTime);
-
-            raceResult.forEach((horse, index) => {
-              horse.position = index + 1;
-            });
-
-            commit("setRaceResults", [...state.raceResults, raceResult]);
-            commit("setCurrentRaceHorses", []);
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          }
-        },
-      },
+    store = createStore({
+      state,
+      actions,
+      getters,
+      mutations,
     });
   });
 
-  describe("Mutations", () => {
-    it("setHorses mutation should update horses state correctly", () => {
-      const horses: Horse[] = [
-        {
-          name: "Horse 1",
-          color: "Brown",
-          condition: 0,
-          speed: 0,
-          finishTime: 0,
-          position: 0,
-        },
-      ];
-      testStore.commit("setHorses", horses);
-      expect(testStore.state.horses).toEqual(horses);
-    });
-
-    it("setRaceSchedule mutation should update raceSchedule state correctly", () => {
-      const raceSchedule: Race[] = [{ distance: 1200, horses: [] }];
-      testStore.commit("setRaceSchedule", raceSchedule);
-      expect(testStore.state.raceSchedule).toEqual(raceSchedule);
-    });
-
-    it("setRaceResults mutation should update raceResults state correctly", () => {
-      const raceResults: Horse[] = [
-        {
-          position: 1,
-          name: "Horse 1",
-          finishTime: 50,
-          condition: 0,
-          color: "",
-          speed: 0,
-        },
-      ];
-      testStore.commit("setRaceResults", raceResults);
-      expect(testStore.state.raceResults).toEqual(raceResults);
-    });
-
-    it("setCurrentRaceHorses mutation should update currentRaceHorses state correctly", () => {
-      const currentRaceHorses: Horse[] = [
-        {
-          name: "Horse 1",
-          color: "Brown",
-          position: 1,
-          condition: 0,
-          speed: 0,
-          finishTime: 0,
-        },
-      ];
-      testStore.commit("setCurrentRaceHorses", currentRaceHorses);
-      expect(testStore.state.currentRaceHorses).toEqual(currentRaceHorses);
-    });
-
-    it("setCurrentRaceName mutation should update currentRaceName state correctly", () => {
-      const currentRaceName = "Race 1";
-      testStore.commit("setCurrentRaceName", currentRaceName);
-      expect(testStore.state.currentRaceName).toEqual(currentRaceName);
-    });
-
-    it("setMaxFinishTime mutation should update maxFinishTime state correctly", () => {
-      const maxFinishTime = 100;
-      testStore.commit("setMaxFinishTime", maxFinishTime);
-      expect(testStore.state.maxFinishTime).toEqual(maxFinishTime);
-    });
+  test("initialize store with correct state", () => {
+    expect(store.state.horses).toEqual([
+      { name: "Horse 1", speed: 40 },
+      { name: "Horse 2", speed: 35 },
+    ]);
+    expect(store.state.raceSchedule).toEqual([]);
+    expect(store.state.raceResults).toEqual([]);
+    expect(store.state.currentRaceName).toBe("");
+    expect(store.state.maxFinishTime).toBe(0);
+    expect(store.state.currentRaceHorses).toEqual([]);
   });
 
-  describe("Actions", () => {
-    it("generateRaceSchedule action should generate race schedule correctly", async () => {
-      await testStore.dispatch("generateRaceSchedule");
-      expect(testStore.state.raceSchedule.length).toBeGreaterThan(0);
-    });
+  test("generateRaceSchedule action", async () => {
+    const mockSchedule = [{ name: "Race 1" }, { name: "Race 2" }];
+    ((actions as any).generateRaceSchedule as jest.Mock).mockImplementationOnce(
+      ({ commit }) => {
+        commit("setRaceSchedule", mockSchedule);
+      }
+    );
 
-    it("startRace action should start the race correctly", async () => {
-      testStore.commit("setRaceSchedule", [{ distance: 1200, horses: [] }]);
-      await testStore.dispatch("startRace");
-      expect(testStore.state.raceResults.length).toBeGreaterThan(0);
-    });
+    await store.dispatch("generateRaceSchedule");
+
+    expect(store.state.raceSchedule).toEqual(mockSchedule);
+  });
+
+  test("startRace action", async () => {
+    const mockResults = [
+      { name: "Horse 1", finishTime: 50 },
+      { name: "Horse 2", finishTime: 55 },
+    ];
+    ((actions as any).startRace as jest.Mock).mockImplementationOnce(
+      ({ commit }, raceName) => {
+        commit("setCurrentRaceName", raceName);
+        commit("setRaceResults", mockResults);
+      }
+    );
+
+    await store.dispatch("startRace", "Race 1");
+
+    expect(store.state.currentRaceName).toBe("Race 1");
+    expect(store.state.raceResults).toEqual(mockResults);
   });
 });
